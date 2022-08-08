@@ -1,15 +1,15 @@
 package africa.semicolon.blogProject.services;
 
+import africa.semicolon.blogProject.data.models.Blog;
 import africa.semicolon.blogProject.data.models.User;
 import africa.semicolon.blogProject.data.repositories.UserRepository;
+import africa.semicolon.blogProject.dtos.reponses.CreateBlogResponse;
 import africa.semicolon.blogProject.dtos.reponses.LoginResponse;
 import africa.semicolon.blogProject.dtos.reponses.RegisterUserResponse;
+import africa.semicolon.blogProject.dtos.requests.CreateBlogRequest;
 import africa.semicolon.blogProject.dtos.requests.LoginRequest;
 import africa.semicolon.blogProject.dtos.requests.RegisterUserRequest;
-import africa.semicolon.blogProject.exceptions.PasswordIncorrectException;
-import africa.semicolon.blogProject.exceptions.UserDoesNotExistsException;
-import africa.semicolon.blogProject.exceptions.UserExistsException;
-import africa.semicolon.blogProject.exceptions.UserLoggedInException;
+import africa.semicolon.blogProject.exceptions.*;
 import africa.semicolon.blogProject.utils.Mapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,6 +20,9 @@ import java.util.Objects;
 public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private BlogService blogService;
 
 
 
@@ -53,12 +56,21 @@ public class UserServiceImpl implements UserService {
         return  response;
     }
 
+    @Override
+    public CreateBlogResponse createBlog(CreateBlogRequest request) {
+        User savedUser = userRepository.findByEmail(request.getBlogUserName());
+        if(savedUser.getBlog() !=  null) throw new BlogExistsException(String.format("%s You already have a blog!!!", request.getBlogUserName()));
 
-    private void isLogin(LoginRequest login) {
-        User loginUser = userRepository.findByEmail(login.getEmail());
+        Blog blog = blogService.createBlog(request);
+        savedUser.setBlog( blog);
 
-        if(loginUser != null) throw new UserLoggedInException(login.getEmail() + "You've successfully logged In!!");
+        userRepository.save(savedUser);
+
+        CreateBlogResponse response = new CreateBlogResponse();
+        response.setMessage(String.format("%s Blog name %s has been created!!!",request.getBlogUserName(), request.getName()));
+        return response;
     }
+
 
     private void isExist(RegisterUserRequest request) {
         User savedUser = userRepository.findByEmail(request.getEmail());
