@@ -2,21 +2,26 @@ package africa.semicolon.blogProject.services;
 
 import africa.semicolon.blogProject.data.models.User;
 import africa.semicolon.blogProject.data.repositories.UserRepository;
+import africa.semicolon.blogProject.dtos.reponses.LoginResponse;
 import africa.semicolon.blogProject.dtos.reponses.RegisterUserResponse;
+import africa.semicolon.blogProject.dtos.requests.LoginRequest;
 import africa.semicolon.blogProject.dtos.requests.RegisterUserRequest;
+import africa.semicolon.blogProject.exceptions.PasswordIncorrectException;
+import africa.semicolon.blogProject.exceptions.UserDoesNotExistsException;
 import africa.semicolon.blogProject.exceptions.UserExistsException;
+import africa.semicolon.blogProject.exceptions.UserLoggedInException;
 import africa.semicolon.blogProject.utils.Mapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.Objects;
 
 @Service
 public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
 
-    public UserServiceImpl(UserRepository userRepository){
-        this.userRepository = userRepository;
-    }
+
 
     @Override
     public RegisterUserResponse register(RegisterUserRequest request) {
@@ -32,6 +37,27 @@ public class UserServiceImpl implements UserService {
 
         return response;
 
+    }
+
+    @Override
+    public LoginResponse loginUser(LoginRequest login) {
+
+        User user = userRepository.findByEmail(login.getEmail());
+        if(user == null) throw new UserDoesNotExistsException("User does not exist!!");
+        else if (!Objects.equals(user.getPassword(),login.getPassword())) throw new PasswordIncorrectException("Password Does not match!!") ;
+
+
+        LoginResponse response = new LoginResponse();
+        response.setMessage(String.format("%s Logged in successfully!!", login.getEmail()));
+
+        return  response;
+    }
+
+
+    private void isLogin(LoginRequest login) {
+        User loginUser = userRepository.findByEmail(login.getEmail());
+
+        if(loginUser != null) throw new UserLoggedInException(login.getEmail() + "You've successfully logged In!!");
     }
 
     private void isExist(RegisterUserRequest request) {
